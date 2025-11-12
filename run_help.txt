@@ -1,0 +1,21 @@
+your Windows path must be accessed under /mnt/c/Users/...
+
+#check file is there or not :-
+ls
+
+#install required dependencies 
+
+sudo apt update
+sudo apt install -y g++ libsodium-dev libssl-dev
+
+For the JSON library
+
+sudo apt install -y nlohmann-json3-dev
+
+Compile your program
+
+g++ -std=c++17 lab_project.cpp -I/usr/include -lsodium -lssl -lcrypto -o chatapp_e2ee
+
+now run the program :- 
+
+./chatapp_e2ee
