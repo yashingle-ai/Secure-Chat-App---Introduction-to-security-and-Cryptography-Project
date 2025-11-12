@@ -1,114 +1,239 @@
+
+# 🔐 Secure Chat System (E2EE with Argon2, AES-CBC, Ed25519, SHA-256)
+
+### 📘 Institute: SVNIT Surat
+
+### 💻 Department: Artificial Intelligence
+
+### 👨‍💻 Team Members:
+
+* **Yash Ingle**
+* **Deep Das**
+
+---
+
+## 📜 Overview
+
+This project implements a **secure end-to-end encrypted (E2EE) messaging system** designed for confidential and authenticated communication between users.
+It integrates **modern cryptographic primitives** — *Argon2, AES-CBC, Ed25519, SHA-256, and Salsa20/Poly1305* — to ensure **confidentiality**, **integrity**, **authentication**, and **secure key storage**.
+
+---
+
+## 🔄 System Workflows
+
+### 🧩 **Login Flow**
+
+```
 User Input → Password Verification (Argon2) → Load User Data → Menu Access
-this is the login flow
+```
 
-message sending flow will be
-Compose Message → Decrypt Sender's Signing Key → AES-CBC Encrypt → Ed25519 Sign → SHA-256 Hash → Store in Recipient's Inbox
+* Verifies the user’s password securely using Argon2.
+* Loads encrypted keys and user metadata for authenticated access.
 
-message reading flow
-Select Inbox → Decrypt User's Keys → AES-CBC Decrypt → Verify Signature → Verify Hash(integrity) → Display Message
+---
 
-1. Argon2 (Password Hashing)
-Purpose: Secure password storage and verification
-Type: Memory-hard key derivation function
-Configuration: Interactive settings (moderate security/speed)
-Usage: crypto_pwhash_str() - Hash passwords for storage
-crypto_pwhash_str_verify() - Verify login passwords
-crypto_pwhash() - Derive keys from passwords
-2. Ed25519 (Digital Signatures)
-Purpose: Message authentication and non-repudiation
-Type: EdDSA (Edwards-curve Digital Signature Algorithm)
-Key Size: 32-byte public key, 64-byte private key
-Usage: crypto_sign_keypair() - Generate signature keypair
-crypto_sign_detached() - Sign plaintext messages
-crypto_sign_verify_detached() - Verify signatures
-3. SHA-256 (Message Integrity)
-Purpose: Ensure message hasn't been tampered with
-Type: Cryptographic hash function
-Output: 256-bit (64 hex characters)
-Usage: crypto_hash_sha256() - Hash plaintext for integrity checking
-4. Salsa20/Poly1305 (Private Key Encryption)
-Purpose: Encrypt private keys at rest
-Type: Authenticated encryption (via libsodium's secretbox)
-Components: Salsa20: Stream cipher for confidentiality
-Poly1305: MAC for authentication
-Usage: crypto_secretbox_easy() - Encrypt private keys
-crypto_secretbox_open_easy() - Decrypt private keys
-5. Random Number Generation
-Algorithm: ChaCha20-based CSPRNG (libsodium)
-Usage: randombytes_buf() - Generate AES keys, IVs, salts, nonces
-Ensures cryptographic randomness for all key material
-6. Base64 Encoding
-Purpose: Convert binary data to text for JSON storage
-Usage: sodium_bin2base64() and sodium_base642bin()
+### ✉️ **Message Sending Flow**
 
-confidentiality: Plaintext → AES-CBC Encryption → Ciphertext
+```
+Compose Message 
+→ Decrypt Sender’s Signing Key 
+→ AES-CBC Encrypt 
+→ Ed25519 Sign 
+→ SHA-256 Hash 
+→ Store in Recipient’s Inbox
+```
 
-Authentication (Sender Verification): Plaintext → Ed25519 Private Key → Digital Signature
-Signature → Ed25519 Public Key → Verification ✓/✗
+Each outgoing message is encrypted, signed, and integrity-verified before delivery.
 
-Integrit (Tamper Detection): Plaintext → SHA-256 → Hash
-Received Hash = Computed Hash? → ✓/✗
+---
 
-Key Protection (At-Rest Security): Private Keys → Password + Salt → Argon2 → Derived Key → Salsa20/Poly1305 → Encrypted Keys
+### 📬 **Message Reading Flow**
 
-each message contains;
+```
+Select Inbox 
+→ Decrypt User’s Keys 
+→ AES-CBC Decrypt 
+→ Verify Signature 
+→ Verify Hash (Integrity) 
+→ Display Message
+```
+
+Messages are decrypted only after authentication and integrity checks pass.
+
+---
+
+## 🧠 Cryptographic Components
+
+### 1. 🧩 **Argon2 (Password Hashing)**
+
+* **Purpose:** Secure password storage and key derivation.
+* **Type:** Memory-hard key derivation function (resists GPU attacks).
+* **Functions:**
+
+  * `crypto_pwhash_str()` → Hash password for storage
+  * `crypto_pwhash_str_verify()` → Verify password at login
+  * `crypto_pwhash()` → Derive symmetric keys from password
+* **Effect:** Prevents brute-force and rainbow-table attacks.
+
+---
+
+### 2. 🖋️ **Ed25519 (Digital Signatures)**
+
+* **Purpose:** Message authentication and non-repudiation.
+* **Type:** EdDSA (Edwards-curve Digital Signature Algorithm).
+* **Key Size:** 32-byte public key, 64-byte private key.
+* **Functions:**
+
+  * `crypto_sign_keypair()` → Generate signing keypair
+  * `crypto_sign_detached()` → Sign message
+  * `crypto_sign_verify_detached()` → Verify signature
+
+---
+
+### 3. 🧾 **SHA-256 (Message Integrity)**
+
+* **Purpose:** Detect message tampering.
+* **Output:** 256-bit digest (64 hex characters).
+* **Function:** `crypto_hash_sha256()`
+* **Process:**
+  Message → SHA-256 → Fixed-size hash
+
+  * If *Received Hash = Computed Hash*, message is intact ✅
+
+---
+
+### 4. 🔐 **Salsa20/Poly1305 (Private Key Encryption)**
+
+* **Purpose:** Encrypt user’s private keys at rest.
+* **Algorithm Type:** Authenticated Encryption (AEAD).
+* **Components:**
+
+  * **Salsa20:** Stream cipher (confidentiality)
+  * **Poly1305:** Message Authentication Code (authenticity)
+* **Functions:**
+
+  * `crypto_secretbox_easy()` → Encrypt private key
+  * `crypto_secretbox_open_easy()` → Decrypt private key
+
+---
+
+### 5. 🎲 **Random Number Generation**
+
+* **Algorithm:** ChaCha20-based CSPRNG (Cryptographically Secure RNG).
+* **Function:** `randombytes_buf()`
+* **Usage:** Generates random keys, IVs, salts, and nonces for cryptographic operations.
+
+---
+
+### 6. 🔤 **Base64 Encoding**
+
+* **Purpose:** Convert binary data to text for JSON storage/transmission.
+* **Functions:**
+
+  * `sodium_bin2base64()` → Binary → Base64
+  * `sodium_base642bin()` → Base64 → Binary
+
+---
+
+## 🧱 Security Architecture
+
+| Property            | Algorithm                 | Purpose                         |
+| ------------------- | ------------------------- | ------------------------------- |
+| **Confidentiality** | AES-CBC                   | Encrypts plaintext messages     |
+| **Authentication**  | Ed25519                   | Verifies sender identity        |
+| **Integrity**       | SHA-256                   | Detects message tampering       |
+| **Key Protection**  | Argon2 + Salsa20/Poly1305 | Protects keys at rest           |
+| **Randomness**      | ChaCha20 CSPRNG           | Ensures secure nonces and salts |
+
+---
+
+## 📦 Message Structure
+
+Each stored message (in recipient’s inbox) follows a secure JSON format:
+
+```json
 {
   "cipher_b64": "AES-CBC encrypted message",
   "iv_b64": "Initialization vector",
-  "sender": "sender_username", 
+  "sender": "sender_username",
   "sign_pub_b64": "Sender's Ed25519 public key",
   "signature_b64": "Ed25519 signature of plaintext",
   "sha256": "SHA-256 hash of plaintext",
   "timestamp": "2024-11-10 15:30:45"
 }
+```
 
-hybrid cryptosystem:
-Symmetric encryption (AES-CBC) for efficiency
-Asymmetric signatures (Ed25519) for authentication
-Hash functions (SHA-256, Argon2) for integrity and password security
-Authenticated encryption (Salsa20/Poly1305) for key protection
+---
 
-1. argon 2
-The password and salt are mixed through multiple passes over a large block of memory.
+## ⚙️ Hybrid Cryptosystem Design
 
-Each block depends on the previous ones — making parallelization hard.
+| Layer                         | Algorithm        | Function                             |
+| ----------------------------- | ---------------- | ------------------------------------ |
+| **Symmetric Encryption**      | AES-CBC          | Efficient message encryption         |
+| **Asymmetric Authentication** | Ed25519          | Message signing & verification       |
+| **Hash Function**             | SHA-256          | Message integrity verification       |
+| **Password Hashing**          | Argon2           | Secure password-based key derivation |
+| **Authenticated Encryption**  | Salsa20/Poly1305 | Protect private keys at rest         |
 
-Final output: A fixed-length hash (key), typically 32 bytes.
+---
 
-2. Ed25519
-EdDSA (Edwards-curve Digital Signature Algorithm) using Curve25519.
+## 🧩 Internal Working Summary
 
-Based on elliptic-curve cryptography (ECC).
+### **Argon2**
 
-Key Generation:
+* Password + Salt → Multiple memory passes → Derived Key
+* Output: 32-byte secure hash used for encryption or verification.
 
-Derive public key from private key using elliptic curve point multiplication.
+### **Ed25519**
 
-Signing:
+* ECC-based digital signature system.
+* Private Key + Message → Signature (R, S)
+* Public Key verifies the elliptic-curve relationship.
 
-Hash private key + message → generate signature (R, S).
+### **SHA-256**
 
-Verification:
+* Processes 512-bit blocks over 64 rounds of modular arithmetic & bitwise operations.
+* Output: 256-bit digest unique to input data.
 
-Verify elliptic-curve relation holds for given public key, message, and signature.
+### **Salsa20/Poly1305**
 
-3. SHA-256 — Cryptographic Hash Function
-Message is divided into 512-bit blocks.
+* Salsa20 generates pseudorandom keystream (XOR with plaintext).
+* Poly1305 computes MAC over ciphertext to ensure authenticity before decryption.
 
-Each block passes through 64 rounds of nonlinear operations:
+---
 
-Bitwise rotations
+## 🧮 Example End-to-End Security Flow
 
-Modular additions
+```
+Plaintext → AES-CBC Encrypt → Ciphertext
+Ciphertext + Signature + Hash → Stored Securely
+Recipient → Decrypt + Verify Signature + Verify Hash → Display Message
+```
 
-Logical functions (Ch, Maj)
+---
 
-Final state = 256-bit digest (H₀–H₇ combined).
+## 🏁 Conclusion
 
-4. Salsa20/Poly1305 — Authenticated Encryption
-Salsa20: Generates a pseudorandom keystream using a 256-bit key + 24-byte nonce.
-Ciphertext = Plaintext ⊕ Keystream.
+This system demonstrates a **complete cryptographic communication pipeline** integrating **password security**, **key protection**, **confidential messaging**, and **integrity verification**.
+It serves as a practical example of **hybrid cryptography** and **end-to-end encryption** using **libsodium** primitives.
 
-Poly1305: Computes a 16-byte authentication tag (MAC) over ciphertext.
+---
 
-On decryption, the MAC is verified before decryption — ensures authenticity.
+## 🧑‍🤝‍🧑 Contributors
+
+| Name           | Role                                    | Department       |
+| -------------- | --------------------------------------- | ---------------- |
+| **Yash Ingle** | Developer & Cryptography Implementation | SVNIT Surat (AI) |
+| **Deep Das**   | Developer & Security Flow Design        | SVNIT Surat (AI) |
+
+---
+
+## 📚 References
+
+* [Libsodium Documentation](https://doc.libsodium.org)
+* [RFC 9106 – Argon2 Password Hashing](https://www.rfc-editor.org/rfc/rfc9106)
+* [RFC 8032 – Ed25519 Signatures](https://www.rfc-editor.org/rfc/rfc8032)
+* [NIST FIPS 180-4 – SHA-256 Specification](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf)
+
+---
+
